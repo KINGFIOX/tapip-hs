@@ -153,12 +153,4 @@ int alloc_tap(char *dev) {
   return tapfd;
 }
 
-void delete_tap(int tapfd) {
-  if (ioctl(tapfd, TUNSETPERSIST, 0) < 0)
-    return;
-  close(tapfd);
-}
-
 int set_tap(void) { return socket(PF_INET, SOCK_DGRAM, IPPROTO_IP); }
-
-void unset_tap(int skfd) { close(skfd); }
