@@ -140,3 +140,5 @@ int alloc_tap(int tapfd, const char *dev) {
 }
 
 int set_tap(void) { return socket(PF_INET, SOCK_DGRAM, IPPROTO_IP); }
+
+int setpersist_tap(int fd) { return ioctl(fd, TUNSETPERSIST, 1); }

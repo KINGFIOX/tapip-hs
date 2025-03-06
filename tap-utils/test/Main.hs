@@ -54,36 +54,46 @@ testTapDevice tapFd = do
   -- create a socket for network device operations
   skFd <- setTap
 
+  hwAddr <- getHwaddrTap tapFd
+  case hwAddr of
+    Left err -> error $ show err
+    Right hwAddr' -> putStrLn $ "hardware address: " ++ formatMacAddress hwAddr'
+
   -- get and show the device information
   name <- getNameTap tapFd
-  putStrLn $ "device name: " ++ name
+  putStrLn $ "device name: " ++ show name
 
-  hwAddr <- getHwaddrTap tapFd
-  putStrLn $ "hardware address: " ++ formatMacAddress hwAddr
+  case name of
+    Left err -> error $ show err
+    Right nameStr -> do
+      -- setting the ip address (192.168.7.1)
+      let ipAddr = parseIpAddress "192.168.7.1"
+      putStrLn $ "setting ip address: " ++ formatIpAddress ipAddr
+      _ <- setIpaddrTap skFd nameStr ipAddr
 
-  -- setting the ip address (192.168.7.1)
-  let ipAddr = parseIpAddress "192.168.7.1"
-  putStrLn $ "setting ip address: " ++ formatIpAddress ipAddr
-  _ <- setIpaddrTap skFd name ipAddr
+      -- setting the netmask (255.255.255.0)
+      let netmask = parseIpAddress "255.255.255.0"
+      putStrLn $ "setting netmask: " ++ formatIpAddress netmask
+      _ <- setnetmaskTap skFd nameStr netmask
 
-  -- setting the netmask (255.255.255.0)
-  let netmask = parseIpAddress "255.255.255.0"
-  putStrLn $ "setting netmask: " ++ formatIpAddress netmask
-  _ <- setnetmaskTap skFd name netmask
+      -- enable the device
+      putStrLn "enabling device..."
+      _ <- setupTap skFd nameStr
 
-  -- get and show the MTU
-  mtu <- getMtuTap skFd name
-  putStrLn $ "MTU: " ++ show mtu
+      -- verify the configuration
+      configuredIp <- getIpaddrTap skFd tapFd
+      case configuredIp of
+        Left err -> error $ show err
+        Right ip -> putStrLn $ "configured ip address: " ++ formatIpAddress ip
 
-  -- enable the device
-  putStrLn "enabling device..."
-  _ <- setupTap skFd name
+      -- get and show the MTU
+      mtu <- getMtuTap skFd nameStr
+      putStrLn $ "MTU: " ++ show mtu
 
-  -- verify the configuration
-  configuredIp <- getIpaddrTap skFd tapFd
-  putStrLn $ "configured ip address: " ++ formatIpAddress configuredIp
-
-  b1 <- hGet tapFd mtu
-  putStrLn $ "b1: " ++ show b1
+      case mtu of
+        Left err -> error $ show err
+        Right mtu' -> do
+          b1 <- hGet tapFd mtu'
+          putStrLn $ "b1: " ++ show b1
 
   return ()
