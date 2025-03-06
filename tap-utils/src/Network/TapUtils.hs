@@ -5,7 +5,7 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
 module Network.TapUtils
-  ( allocTap,
+  ( withTap,
     setTap,
     getNameTap,
     getHwaddrTap,
@@ -25,20 +25,34 @@ import Foreign.C.Types
 import GHC.IO.Handle (Handle)
 import GHC.IO.IOMode (IOMode (ReadWriteMode))
 import Network.Socket (HostAddress)
-import System.IO (openFile)
+import System.IO (withFile)
 import System.Posix.IO (fdToHandle, handleToFd)
 import System.Posix.Types (Fd (Fd))
 
--- | alloc a tap device
-allocTap :: String -> IO (Either IOError Handle)
-allocTap devName = do
-  handle <- openFile "/dev/net/tun" ReadWriteMode
-  -- fd <- withCString devName (fmap fromIntegral . c_alloc_tap)
-  ret <- join $ withCString devName $ \namePtr -> c_alloc_tap <$> (fromIntegral <$> handleToFd handle) <*> pure namePtr
-
-  if ret < 0
-    then return (Left (errnoToIOError "allocTap" (Errno (negate ret)) Nothing Nothing))
-    else return (Right handle)
+withTap :: String -> Word32 -> Word32 -> (Handle -> Int -> Word32 -> IO (Either IOError ())) -> IO (Either IOError ())
+withTap devName ipv4 netmask action =
+  withFile "/dev/net/tun" ReadWriteMode $ \fd -> do
+    allocResult <- withCString devName $ \namePtr -> do
+      ret <- join $ c_alloc_tap <$> (fromIntegral <$> handleToFd fd) <*> pure namePtr
+      if ret < 0
+        then return (Left (errnoToIOError "allocTap" (Errno (negate ret)) Nothing Nothing))
+        else return (Right ())
+    case allocResult of
+      Left err -> return (Left err)
+      Right () -> do
+        skfd <- setTap
+        mtuRes <- getMtuTap skfd devName
+        case mtuRes of
+          Left err -> return (Left err)
+          Right mtu -> do
+            ipRes <- setIpaddrTap skfd devName ipv4
+            case ipRes of
+              Left err -> return (Left err)
+              Right () -> do
+                nmRes <- setnetmaskTap skfd devName netmask
+                case nmRes of
+                  Left err -> return (Left err)
+                  Right () -> action fd mtu ipv4
 
 -- | create a socket for configuration
 setTap :: IO Handle

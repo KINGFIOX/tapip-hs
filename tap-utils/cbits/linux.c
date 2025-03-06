@@ -20,7 +20,6 @@ int setnetmask_tap(int skfd, const unsigned char *name, unsigned int netmask) {
   saddr->sin_family = AF_INET;
   saddr->sin_addr.s_addr = netmask;
   if ((ret = ioctl(skfd, SIOCSIFNETMASK, (void *)&ifr) < 0)) {
-    close(skfd);
     return ret;
   }
   return 0;
@@ -34,7 +33,6 @@ static int setflags_tap(int skfd, const unsigned char *name,
   strcpy(ifr.ifr_name, (char *)name);
   /* get original flags */
   if ((ret = ioctl(skfd, SIOCGIFFLAGS, (void *)&ifr)) < 0) {
-    close(skfd);
     return ret;
   }
   /* set new flags */
@@ -44,7 +42,6 @@ static int setflags_tap(int skfd, const unsigned char *name,
     ifr.ifr_flags &= ~flags & 0xffff;
   }
   if ((ret = ioctl(skfd, SIOCSIFFLAGS, (void *)&ifr)) < 0) {
-    close(skfd);
     return ret;
   }
   return 0;
@@ -61,7 +58,6 @@ int getmtu_tap(int skfd, const unsigned char *name, int *mtu) {
   strcpy(ifr.ifr_name, (char *)name);
   /* get net order hardware address */
   if ((ret = ioctl(skfd, SIOCGIFMTU, (void *)&ifr)) < 0) {
-    close(skfd);
     return ret;
   }
   *mtu = ifr.ifr_mtu;
@@ -78,7 +74,6 @@ int setipaddr_tap(int skfd, const unsigned char *name, unsigned int ipaddr) {
   saddr->sin_family = AF_INET;
   saddr->sin_addr.s_addr = ipaddr;
   if ((ret = ioctl(skfd, SIOCSIFADDR, (void *)&ifr) < 0)) {
-    close(skfd);
     return ret;
   }
   return 0;
@@ -91,7 +86,6 @@ int getipaddr_tap(int skfd, const unsigned char *name, unsigned int *ipaddr) {
 
   strcpy(ifr.ifr_name, (char *)name);
   if ((ret = ioctl(skfd, SIOCGIFADDR, (void *)&ifr)) < 0) {
-    close(skfd);
     return ret;
   }
   saddr = (struct sockaddr_in *)&ifr.ifr_addr;
