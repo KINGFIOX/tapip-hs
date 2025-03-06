@@ -92,4 +92,5 @@ test-suite tap-utils-test
     build-depends:
         base ^>=4.17.2.1,
         tap-utils,
-        network
+        network,
+        bytestring

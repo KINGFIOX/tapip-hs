@@ -3,6 +3,7 @@
 module Main where
 
 import Data.Bits ((.&.))
+import Data.ByteString (hGet)
 import Data.List (intercalate)
 import Data.Word (Word32, Word8)
 import GHC.IO.Handle (Handle)
@@ -81,3 +82,8 @@ testTapDevice tapFd = do
   -- verify the configuration
   configuredIp <- getIpaddrTap skFd tapFd
   putStrLn $ "configured ip address: " ++ formatIpAddress configuredIp
+
+  b1 <- hGet tapFd mtu
+  putStrLn $ "b1: " ++ show b1
+
+  return ()

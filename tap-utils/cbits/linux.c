@@ -1,5 +1,4 @@
 #include <fcntl.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -10,7 +9,6 @@
 #include <net/if.h>
 
 #define ETH_ALEN 6
-#define TUNTAPDEV "/dev/net/tun"
 
 int setnetmask_tap(int skfd, const unsigned char *name, unsigned int netmask) {
   int ret;
@@ -122,15 +120,9 @@ int gethwaddr_tap(int tapfd, unsigned char *ha) {
   return 0;
 }
 
-int alloc_tap(char *dev) {
-  int tapfd;
+int alloc_tap(int tapfd, const char *dev) {
+  int ret;
   struct ifreq ifr = {};
-
-  tapfd = open(TUNTAPDEV, O_RDWR);
-  if (tapfd < 0) {
-    perror("open");
-    return -1;
-  }
 
   ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
   if (*dev) {
@@ -140,13 +132,11 @@ int alloc_tap(char *dev) {
    * create a new tap device
    * if created already, just bind tun with file
    */
-  if (ioctl(tapfd, TUNSETIFF, (void *)&ifr) < 0) {
-    perror("ioctl TUNSETIFF");
-    close(tapfd);
-    return -1;
+  if ((ret = ioctl(tapfd, TUNSETIFF, (void *)&ifr) < 0)) {
+    return ret;
   }
 
-  return tapfd;
+  return 0;
 }
 
 int set_tap(void) { return socket(PF_INET, SOCK_DGRAM, IPPROTO_IP); }

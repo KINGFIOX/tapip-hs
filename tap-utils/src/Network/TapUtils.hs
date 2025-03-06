@@ -23,17 +23,22 @@ import Foreign.C.Error (Errno (Errno), errnoToIOError)
 import Foreign.C.String
 import Foreign.C.Types
 import GHC.IO.Handle (Handle)
+import GHC.IO.IOMode (IOMode (ReadWriteMode))
 import Network.Socket (HostAddress)
+import System.IO (openFile)
 import System.Posix.IO (fdToHandle, handleToFd)
 import System.Posix.Types (Fd (Fd))
 
 -- | alloc a tap device
 allocTap :: String -> IO (Either IOError Handle)
 allocTap devName = do
-  fd <- withCString devName (fmap fromIntegral . c_alloc_tap)
-  if fd < 0
-    then return (Left (errnoToIOError "allocTap" (Errno (negate fd)) Nothing Nothing))
-    else Right <$> fdToHandle (Fd fd)
+  handle <- openFile "/dev/net/tun" ReadWriteMode
+  -- fd <- withCString devName (fmap fromIntegral . c_alloc_tap)
+  ret <- join $ withCString devName $ \namePtr -> c_alloc_tap <$> (fromIntegral <$> handleToFd handle) <*> pure namePtr
+
+  if ret < 0
+    then return (Left (errnoToIOError "allocTap" (Errno (negate ret)) Nothing Nothing))
+    else return (Right handle)
 
 -- | create a socket for configuration
 setTap :: IO Handle
@@ -89,7 +94,7 @@ setnetmaskTap skfd name netmask = withCString name $ \namePtr -> do
   fromIntegral <$> join (c_setnetmask_tap <$> (fromIntegral <$> handleToFd skfd) <*> pure (castPtr namePtr) <*> pure (fromIntegral netmask))
 
 foreign import ccall unsafe "alloc_tap"
-  c_alloc_tap :: CString -> IO CInt
+  c_alloc_tap :: CInt -> CString -> IO CInt
 
 foreign import ccall unsafe "set_tap"
   c_set_tap :: IO CInt
