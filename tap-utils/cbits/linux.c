@@ -28,8 +28,8 @@ int setnetmask_tap(int skfd, const unsigned char *name, unsigned int netmask) {
   return 0;
 }
 
-int setflags_tap(int skfd, const unsigned char *name, unsigned short flags,
-                 int set) {
+static int setflags_tap(int skfd, const unsigned char *name,
+                        unsigned short flags, int set) {
   int ret;
   struct ifreq ifr = {};
 
@@ -50,10 +50,6 @@ int setflags_tap(int skfd, const unsigned char *name, unsigned short flags,
     return ret;
   }
   return 0;
-}
-
-int setdown_tap(int skfd, const unsigned char *name) {
-  return setflags_tap(skfd, name, IFF_UP | IFF_RUNNING, 0);
 }
 
 int setup_tap(int skfd, const unsigned char *name) {

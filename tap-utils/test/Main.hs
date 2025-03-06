@@ -8,7 +8,6 @@ import Data.Word (Word32, Word8)
 import GHC.IO.Handle (Handle)
 import Network.Socket (HostAddress)
 import Network.TapUtils
-import System.IO (hPutStrLn, stderr)
 import Text.Printf (printf)
 
 -- | format a mac address to a string
@@ -46,10 +45,8 @@ main = do
   putStrLn "creating tap device..."
   handle <- allocTap "tap0"
   case handle of
-    Nothing -> do
-      hPutStrLn stderr "failed to create tap device, please ensure you have root permissions"
-      return ()
-    Just tapFd -> testTapDevice tapFd
+    Left err -> error $ show err
+    Right tapFd -> testTapDevice tapFd
 
 testTapDevice :: Handle -> IO ()
 testTapDevice tapFd = do
@@ -84,11 +81,3 @@ testTapDevice tapFd = do
   -- verify the configuration
   configuredIp <- getIpaddrTap skFd tapFd
   putStrLn $ "configured ip address: " ++ formatIpAddress configuredIp
-
-  -- test completed, disable the device
-  putStrLn "disabling device..."
-  _ <- setdownTap skFd name
-
-  -- close the socket
-  unsetTap skFd
-  putStrLn "test completed"
