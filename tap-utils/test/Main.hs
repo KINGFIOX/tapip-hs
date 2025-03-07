@@ -1,12 +1,14 @@
 module Main where
 
 import Data.Bits ((.&.))
-import Data.ByteString (hGetSome)
 import Data.List (intercalate)
 import Data.Word (Word32, Word8)
-import GHC.IO.Handle (Handle)
+import Foreign (allocaBytes)
+import GHC.Conc.IO (threadDelay)
+import GHC.IO.Handle (Handle, hIsOpen)
 import Network.Socket (HostAddress)
 import Network.TapUtils
+import System.IO (hGetBuf)
 import Text.Printf (printf)
 
 -- | format a mac address to a string
@@ -39,16 +41,22 @@ parseIpAddress s =
           + (a `mod` 256)
     _ -> error $ "Invalid IP address format: " ++ s
 
+-- ip tuntap add mode tun dev tap0
+-- ip addr add 10.0.0.1/24 dev tap0
+-- ip link set up dev tap0
+
 main :: IO ()
 main = do
   putStrLn "creating tap device..."
-  ret <- withTap "tap0" (parseIpAddress "192.168.7.1") (parseIpAddress "255.255.255.0") testTapDevice
+  ret <- withTap "tap0" testTapDevice
   print $ "ret: " ++ show ret
 
-testTapDevice :: Handle -> Int -> Word32 -> IO (Either IOError ())
-testTapDevice fd mtu ipv4 = do
-  putStrLn $ "mtu: " ++ show mtu
-  putStrLn $ "ipv4: " ++ formatIpAddress ipv4
-  b1 <- hGetSome fd mtu
-  putStrLn $ "b1: " ++ show b1
+testTapDevice :: Handle -> IO (Either IOError ())
+testTapDevice fd = do
+  openStatus <- hIsOpen fd
+  putStrLn $ "openStatus: " ++ show openStatus
+  threadDelay 1000000000
+  allocaBytes 1500 $ \buf -> do
+    bytes <- hGetBuf fd buf 1500
+    putStrLn $ "bytes: " ++ show bytes
   return (Right ())

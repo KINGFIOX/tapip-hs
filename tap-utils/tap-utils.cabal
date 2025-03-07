@@ -55,7 +55,7 @@ library
     default-language: Haskell2010
 
     -- Other library packages from which modules are imported.
-    build-depends: base ^>=4.17.2.1, network, unix
+    build-depends: base ^>=4.17.2.1, network, unix, process
 
     -- Modules exported by the library.
     exposed-modules: Network.TapUtils
